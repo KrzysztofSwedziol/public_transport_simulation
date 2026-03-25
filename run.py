@@ -1,6 +1,9 @@
-from City import City
+import matplotlib
+matplotlib.use("TkAgg")
+
+from Simulation import Simulation
 
 if __name__ == "__main__":
-    city = City(width=5, height=5)
-    city.generate_city()
-    city.print_city()
+    sim = Simulation(10, 10)
+    sim.setup()
+    sim.run()
