@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://c3bcybnywo0pn"]
+
+[ext_resource type="Script" uid="uid://dqs3v2g4x486h" path="res://main_scene/main.gd" id="1_p5fyt"]
+[ext_resource type="PackedScene" uid="uid://dlvkqtqv3qndv" path="res://map/map.tscn" id="2_x58px"]
+
+[node name="Main" type="Node2D" unique_id=66876461]
+script = ExtResource("1_p5fyt")
+
+[node name="Map" parent="." unique_id=855645925 instance=ExtResource("2_x58px")]
+
+[node name="Timer" type="Timer" parent="." unique_id=743951201]
+one_shot = true
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

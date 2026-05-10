@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://5rg8vtmxf3rw"]
+
+[ext_resource type="Script" uid="uid://d1wkyn03yan5r" path="res://map/line/vehicle.gd" id="1_hi2ih"]
+[ext_resource type="Script" uid="uid://cwcmepdq1sna2" path="res://map/line/vehicle_visualization.gd" id="1_x533p"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hi2ih"]
+
+[node name="Vehicle" type="Node2D" unique_id=2021372068]
+script = ExtResource("1_hi2ih")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=925978709]
+script = ExtResource("1_x533p")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1033186805]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1629148570]
+shape = SubResource("CircleShape2D_hi2ih")
