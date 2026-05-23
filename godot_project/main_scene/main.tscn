@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://c3bcybnywo0pn"]
+
+[ext_resource type="Script" uid="uid://dqs3v2g4x486h" path="res://main_scene/main.gd" id="1_p5fyt"]
+[ext_resource type="PackedScene" uid="uid://dlvkqtqv3qndv" path="res://map/map.tscn" id="2_x58px"]
+[ext_resource type="PackedScene" uid="uid://jfwmrgal3d02" path="res://HUD/hud.tscn" id="3_j04as"]
+
+[node name="Main" type="Node2D" unique_id=66876461]
+script = ExtResource("1_p5fyt")
+
+[node name="Map" parent="." unique_id=855645925 instance=ExtResource("2_x58px")]
+
+[node name="Timer" type="Timer" parent="." unique_id=743951201]
+one_shot = true
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2137722494]
+position = Vector2(960, 540)
+
+[node name="HUD" parent="Camera2D" unique_id=1494394982 instance=ExtResource("3_j04as")]
+anchors_preset = 9
+anchor_right = 0.0
+offset_left = -960.0
+offset_top = -540.0
+offset_right = 960.0
+offset_bottom = 540.0
+grow_horizontal = 1
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

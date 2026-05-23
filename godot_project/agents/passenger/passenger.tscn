@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://dnpwxyvofkif7"]
+
+[ext_resource type="Script" uid="uid://dc1eelup3aght" path="res://agents/passenger/passenger.gd" id="1_3uf01"]
+[ext_resource type="Script" uid="uid://djq3lcx0o4myj" path="res://agents/passenger/sprite_2d.gd" id="2_18oef"]
+
+[node name="Passenger" type="Node2D" unique_id=1347815308]
+script = ExtResource("1_3uf01")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=18938080]
+script = ExtResource("2_18oef")

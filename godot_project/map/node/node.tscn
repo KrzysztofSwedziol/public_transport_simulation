@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://djrinme2lf8rg"]
+
+[ext_resource type="Script" uid="uid://cv5icprilh6u1" path="res://map/node/node.gd" id="1_6ke2k"]
+[ext_resource type="Script" uid="uid://nkldkari0qer" path="res://map/node/circle.gd" id="1_6n1y0"]
+
+[node name="Node" type="Node2D" unique_id=1100698283]
+script = ExtResource("1_6ke2k")
+
+[node name="NodeVisualization" type="Sprite2D" parent="." unique_id=865244877]
+script = ExtResource("1_6n1y0")

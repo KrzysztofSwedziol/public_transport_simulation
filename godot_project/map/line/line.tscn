@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cphjlgcivqhnv"]
+
+[ext_resource type="Script" uid="uid://qmsr6funsade" path="res://map/line/line.gd" id="1_ctx40"]
+
+[node name="Line" type="Node2D" unique_id=628524504]
+script = ExtResource("1_ctx40")
