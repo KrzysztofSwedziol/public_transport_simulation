@@ -36,6 +36,8 @@ var rng := RandomNumberGenerator.new()
 
 var prev_click = null
 
+var spawn_accumulator = 0.0
+
 func _ready() -> void:
 	rng.randomize()
 
@@ -482,10 +484,26 @@ func _add_virtual_edge(start: Node2D, end: Node2D, line_number: int, line_ref: N
 	var edge = Edge.new(start, end, distance, travel_time, line_info)
 	start.virtual_edges.append(edge)
 
+func get_number_of_passenger_spawns() :
+	var limit = exp(-Globals.PASSENGER_SPAWN_RATE)
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	
+	var k = 0
+	var p = 1
+	while p > limit :
+		k += 1
+		p *= rng.randf()
+	
+	return k - 1
+
 func tick(delta) -> void:
 	print("Current tick: ", "%4d " % Globals.TICK, delta)
 	for line in lines:
 		line.tick(delta)
+		
+	for i in range(get_number_of_passenger_spawns()) :
+		spawn_passenger()
 
 func _process(delta: float) -> void:
 	var mouse_pos = get_viewport().get_mouse_position()
