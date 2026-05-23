@@ -2,13 +2,13 @@ extends Node2D
 
 const VEHICLE = preload("res://map/line/vehicle.tscn")
 
-
-const STOP_PROBABILITY = 0.49
+const STOP_PROBABILITY = 0.95
 const STOP_DURATION = 2
 const NIGHT_LINE_PROBABILITY = 0.2
-# x / y means, that on average, x buses leave every y minutes
-const LEAVE_FREQUENCY = 1.0 / 45
+# x / y means that on average x buses leave every y minutes
+const LEAVE_FREQUENCY = 1.0 / 15
 const TRAM_PROBABILITY = 0.2
+
 enum DIRECTIONS {
 	FORWARD,
 	BACKWARD
@@ -23,176 +23,259 @@ var NUMBER = 0
 var path = []
 var stops = []
 var vehicles = []
-
 var schedule = {}
+var rng := RandomNumberGenerator.new()
+var default_speed = 50
+var night_line = false
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	var RNG = RandomNumberGenerator.new()
-	RNG.randomize()
-	if RNG.randf() < TRAM_PROBABILITY :
-		self.TRAM_LINE = true
+	rng.randomize()
+	if rng.randf() < TRAM_PROBABILITY:
+		TRAM_LINE = true
 	create_schedule()
-	
-	pass # Replace with function body.
-
 
 func tick(delta: float) -> void:
-	#for vehicle in self.vehicles :
-		#vehicle.tick()
-	var directions = self.schedule.get(Globals.TICK, [])
-	if directions.size() == 0 : return
-	#print("Found directions on tick %4d " % Globals.TICK, directions)
+	var directions = schedule.get(Globals.TICK, [])
+	if directions.size() == 0:
+		return
 	spawn_agent(directions)
-	
-func spawn_agent(directions) :
-	var capacity = 10
-	var speed = 50
-	if self.TRAM_LINE :
-		capacity *= 3
-		speed *= 2
-	for direction in directions :
-		var vehicle = VEHICLE.instantiate()
-		vehicle.COLOR = self.COLOR
-		vehicle.speed = speed
-		vehicle.capacity = capacity
-		vehicle.stops = self.stops
-		vehicle.stop_duration = STOP_DURATION
-		if direction == DIRECTIONS.FORWARD :
-			#print("TICK %4d" % Globals.TICK, ": Spawning agent on start")
-			vehicle.path = self.path.duplicate()
-			vehicle.global_position = self.start.global_position
-		elif direction == DIRECTIONS.BACKWARD :
-			#print("TICK %4d" % Globals.TICK, ": Spawning agent on end")
-			self.path.reverse()
-			vehicle.path = self.path.duplicate()
-			self.path.reverse()
-			vehicle.global_position = self.end.global_position
-		else :
-			#print("TICK %4d" % Globals.TICK, ": Invalid spawn direction")
-			continue
-		self.add_child(vehicle)
-		self.vehicles.append(vehicle)
 
-func create_schedule(frequency = LEAVE_FREQUENCY) :
-	var RNG = RandomNumberGenerator.new()
-	RNG.randomize()
+func spawn_agent(directions: Array) -> void:
+	var vehicle_capacity = 10
+	var vehicle_speed = 50
+	if TRAM_LINE:
+		vehicle_capacity *= 3
+		vehicle_speed *= 1.1
 	
+	for direction in directions:
+		var vehicle = VEHICLE.instantiate()
+		vehicle.COLOR = COLOR
+		vehicle.speed = vehicle_speed
+		vehicle.capacity = vehicle_capacity
+		vehicle.stop_duration = STOP_DURATION
+		vehicle.line = self
+		vehicle.direction = direction
+		
+		if direction == DIRECTIONS.FORWARD:
+			vehicle.path = path.duplicate()
+			vehicle.stops = stops.duplicate()
+			vehicle.global_position = start.global_position
+		elif direction == DIRECTIONS.BACKWARD:
+			vehicle.path = path.duplicate()
+			vehicle.path.reverse()
+			vehicle.stops = stops.duplicate()
+			vehicle.stops.reverse()
+			vehicle.global_position = end.global_position
+		else:
+			continue
+		
+		add_child(vehicle)
+		vehicles.append(vehicle)
+
+func create_schedule(frequency = LEAVE_FREQUENCY) -> void:
 	var start_hour = 0
 	var end_hour = 1440
 	
-	if RNG.randf() < NIGHT_LINE_PROBABILITY :
-		# line is coursing from 00:00 to 07:59
+	if rng.randf() < NIGHT_LINE_PROBABILITY:
+		night_line = true
 		end_hour = 480
-		# no trams at night
-		self.TRAM_LINE = false
-	else :
-		# line is coursing from 07:00 to 23:59
+		TRAM_LINE = false
+	else:
 		start_hour = 420
 	
-	# first bus is leaving exactly at start hour, from both start and end
-	self.schedule[start_hour] = [DIRECTIONS.FORWARD]
-	self.schedule[start_hour].append(DIRECTIONS.BACKWARD)
+	schedule[start_hour] = [DIRECTIONS.FORWARD, DIRECTIONS.BACKWARD]
 	
-	var last_start = start_hour
-	
-	# randomly create bus schedule
-	for i in range(start_hour + 1, end_hour) :
-		if RNG.randf() >= frequency :
+	for i in range(start_hour + 1, end_hour):
+		if rng.randf() >= frequency:
 			continue
-		last_start = i
-		# with difference of +- 5 minutes, make sure another bus is leaving from end to start
-		var second_time = max(min(i + RNG.randi_range(-5, 5), end_hour - 1), start_hour + 1)
 		
+		var second_time = max(min(i + rng.randi_range(-5, 5), end_hour - 1), start_hour + 1)
 		var forward_table = schedule.get(i, [])
-		if DIRECTIONS.FORWARD not in forward_table :
+		if DIRECTIONS.FORWARD not in forward_table:
 			forward_table.append(DIRECTIONS.FORWARD)
 			schedule[i] = forward_table
+		
 		var backward_table = schedule.get(second_time, [])
-		if DIRECTIONS.BACKWARD not in backward_table :
+		if DIRECTIONS.BACKWARD not in backward_table:
 			backward_table.append(DIRECTIONS.BACKWARD)
 			schedule[second_time] = backward_table
 
-func bfs(start, end, no_go_zone = []) :
-	var queue = [start]
+func bfs(start_node, end_node, no_go_zone = []) -> Dictionary:
+	var queue = [start_node]
 	var visited = {}
 	var parent = {}
+	visited[start_node] = true
+	parent[start_node] = null
 	
-	visited[start] = true
-	parent[start] = null
-	
-	for node in no_go_zone :
+	for node in no_go_zone:
 		visited[node] = true
-		
-	var current = null
 	
-	while queue.size() > 0 :
-		current = queue.pop_front()
-		if current == end : break
+	while queue.size() > 0:
+		var current = queue.pop_front()
+		if current == end_node:
+			break
 		
-		for road in current.roads :
+		for road in current.roads:
 			var neighbour = road.end
-			if not visited.has(neighbour) :
+			if not visited.has(neighbour):
 				visited[neighbour] = true
 				parent[neighbour] = current
 				queue.append(neighbour)
-				
+	
 	return parent
 
-func initialize(start, through, end) :
-	self.NUMBER = Globals.get_line_number()
-	self.COLOR = Globals.get_line_color(self.NUMBER)
-	self.start = start
-	self.end = end
+func initialize(start_node, through_node, end_node) -> void:
+	NUMBER = Globals.get_line_number()
+	COLOR = Globals.get_line_color(NUMBER)
+	start = start_node
+	end = end_node
+	path = _create_line_path(start_node, through_node, end_node)
+	_create_stops(start_node, through_node, end_node)
+	_register_line_on_roads()
+
+func _create_line_path(start_node, through_node, end_node) -> Array:
+	var result = []
+	var parent = bfs(start_node, through_node)
+	var first_part = _reconstruct_path(parent, through_node)
 	
-	self.path = []
-	var parent = bfs(start, through)
+	parent = bfs(through_node, end_node, first_part.slice(0, max(first_part.size() - 1, 0)))
+	var second_part = _reconstruct_path(parent, end_node)
 	
-	var current = through
-	while current != null :
-		self.path.append(current)
+	if second_part.size() > 0:
+		second_part.pop_front()
+	
+	result.append_array(first_part)
+	result.append_array(second_part)
+	return result
+
+func _reconstruct_path(parent: Dictionary, end_node) -> Array:
+	if not parent.has(end_node):
+		return []
+	
+	var result = []
+	var current = end_node
+	while current != null:
+		result.append(current)
 		current = parent[current]
-	
-	self.path.reverse()
-	
-	parent = bfs(through, end, self.path)
-	
-	var temp_path = []
-	current = end
-	while current != null :
-		temp_path.append(current)
-		current = parent[current]
-	temp_path.reverse()
-	
-	self.path = self.path + temp_path
-	
-	var RNG = RandomNumberGenerator.new()
-	RNG.randomize()
-	
-	
-	var prev = self.path[0]
-	
-	self.stops.append(prev)
-	prev.stops.append(self)
-	
-	for i in range(1, self.path.size()) :
-		
-		current = self.path[i]
-		
-		if RNG.randf() < STOP_PROBABILITY or current == start or current == end or current == through :
-			self.stops.append(current)
-			current.stops.append(self)
-		
-		for road in prev.roads :
-			if road.end == current :
+	result.reverse()
+	return result
+
+func _create_stops(start_node, through_node, end_node) -> void:
+	stops.clear()
+	var stop_probability = STOP_PROBABILITY
+	if night_line :
+		stop_probability /= 5
+	for current in path:
+		if current == start_node or current == through_node or current == end_node or rng.randf() < STOP_PROBABILITY:
+			if current not in stops:
+				stops.append(current)
+				current.stops.append(self)
+
+func _register_line_on_roads() -> void:
+	for i in range(1, path.size()):
+		var previous = path[i - 1]
+		var current = path[i]
+		for road in previous.roads:
+			if road.end == current and self not in road.lines:
 				road.lines.append(self)
 				road.queue_redraw()
-		for road in current.roads :
-			if road.end == prev :
+		for road in current.roads:
+			if road.end == previous and self not in road.lines:
 				road.lines.append(self)
 				road.queue_redraw()
-				
-		prev = current
-				
+
+func get_direction_between_stops(entry_stop, exit_stop) -> int:
+	if entry_stop not in stops or exit_stop not in stops:
+		return -1
 	
-	self.stops.reverse()
+	var entry_index = path.find(entry_stop)
+	var exit_index = path.find(exit_stop)
+	if entry_index == -1 or exit_index == -1:
+		return -1
+	if entry_index < exit_index:
+		return DIRECTIONS.FORWARD
+	if entry_index > exit_index:
+		return DIRECTIONS.BACKWARD
+	return -1
+
+func get_path_between_stops(entry_stop, exit_stop, direction: int) -> Array:
+	var entry_index = path.find(entry_stop)
+	var exit_index = path.find(exit_stop)
+	if entry_index == -1 or exit_index == -1:
+		return []
+	
+	if direction == DIRECTIONS.FORWARD and entry_index < exit_index:
+		return path.slice(entry_index, exit_index + 1)
+	if direction == DIRECTIONS.BACKWARD and entry_index > exit_index:
+		var result = path.slice(exit_index, entry_index + 1)
+		result.reverse()
+		return result
+	
+	return []
+
+func vehicle_can_take_passenger(vehicle, entry_stop, exit_stop) -> bool:
+	if vehicle.line != self:
+		return false
+	if vehicle.direction != get_direction_between_stops(entry_stop, exit_stop):
+		return false
+	if not vehicle.is_stopped_at(entry_stop):
+		return false
+	if not vehicle.has_free_seat():
+		return false
+	
+	var vehicle_index = vehicle.path_position - 1
+	var exit_index_in_vehicle_path = vehicle.path.find(exit_stop)
+	return exit_index_in_vehicle_path > vehicle_index
+
+func _get_sorted_departure_times(direction: int) -> Array:
+	var times := []
+	for t in schedule.keys():
+		var dirs = schedule[t]
+		if direction in dirs:
+			times.append(t)
+	times.sort()
+	return times
+
+func _travel_minutes_from_spawn_to_stop(direction: int, stop_node) -> float:
+	var route := []
+	if direction == DIRECTIONS.FORWARD:
+		route = path
+	else:
+		route = path.duplicate()
+		route.reverse()
+
+	var stop_index = route.find(stop_node)
+	if stop_index == -1:
+		return INF
+
+	var distance = 0.0
+	for i in range(1, stop_index + 1):
+		distance += route[i - 1].global_position.distance_to(route[i].global_position)
+
+	var travel_time = distance / default_speed
+
+	# count stops encountered up to and including this stop
+	var stops_count = 0
+	for i in range(0, stop_index + 1):
+		if route[i] in stops:
+			stops_count += 1
+
+	var stop_time = stops_count * STOP_DURATION
+	return travel_time + stop_time
+
+func get_next_arrival_wait(entry_stop, direction: int, earliest_tick: int) -> float:
+	# earliest_tick is the simulation tick (minute) when the passenger will be at the entry stop
+	var depart_times = _get_sorted_departure_times(direction)
+	if depart_times.size() == 0:
+		return INF
+
+	var travel_minutes = int(ceil(_travel_minutes_from_spawn_to_stop(direction, entry_stop)))
+
+	var min_wait = INF
+	for depart in depart_times:
+		var arrival = (depart + travel_minutes) % 1440
+		var wait = (arrival - earliest_tick + 1440) % 1440
+		if wait < min_wait:
+			min_wait = wait
+
+	return min_wait

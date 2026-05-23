@@ -6,13 +6,6 @@ extends Node2D
 const MAX_NODES = 20
 const NUM_LINES = 5
 
-const MARGINS = [
-	40, # left margin
-	40, # top margin
-	40, # right margin
-	40, # bottom margin
-]
-
 var execute_tick = true
 var elapsed_time = 0
 

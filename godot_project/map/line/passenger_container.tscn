@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bc3cecdjlkjbq"]
+
+[node name="PassengerContainer" type="Node2D" unique_id=478619689]
+
+[node name="Seat0" type="Marker2D" parent="." unique_id=1142525499]
+
+[node name="Seat1" type="Marker2D" parent="." unique_id=726798558]
+position = Vector2(20, 0)
+
+[node name="Seat2" type="Marker2D" parent="." unique_id=1040753282]
+position = Vector2(0, 20)
+
+[node name="Seat3" type="Marker2D" parent="." unique_id=1527221404]
+position = Vector2(20, 20)

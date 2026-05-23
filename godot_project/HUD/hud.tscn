@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://jfwmrgal3d02"]
+
+[ext_resource type="Script" uid="uid://cjle14eloj63w" path="res://HUD/hud.gd" id="1_h61sl"]
+
+[node name="HUD" type="Control" unique_id=1494394982]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_h61sl")
+
+[node name="MenuBackground" type="ColorRect" parent="." unique_id=1749346297]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -501.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(0.11858138, 0.11858139, 0.11858133, 1)
+
+[node name="Menu" type="VBoxContainer" parent="MenuBackground" unique_id=638907134]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -8.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="TickSpeedContainer" type="VBoxContainer" parent="MenuBackground/Menu" unique_id=2118778533]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Label" type="Label" parent="MenuBackground/Menu/TickSpeedContainer" unique_id=766877035]
+layout_mode = 2
+text = "Tick Speed"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slider" type="HSlider" parent="MenuBackground/Menu/TickSpeedContainer" unique_id=1726548106]
+layout_mode = 2
+size_flags_vertical = 1
+value = 50.0
+
+[node name="ValueLabel" type="Label" parent="MenuBackground/Menu/TickSpeedContainer" unique_id=1270965288]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PassengerSpawnRateContainer" type="VBoxContainer" parent="MenuBackground/Menu" unique_id=632566931]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MenuBackground/Menu/PassengerSpawnRateContainer" unique_id=557726857]
+layout_mode = 2
+text = "Passenger Spawn Rate"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slider" type="HSlider" parent="MenuBackground/Menu/PassengerSpawnRateContainer" unique_id=1216636347]
+layout_mode = 2
+size_flags_vertical = 1
+value = 50.0
+
+[node name="ValueLabel" type="Label" parent="MenuBackground/Menu/PassengerSpawnRateContainer" unique_id=111891286]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="value_changed" from="MenuBackground/Menu/TickSpeedContainer/Slider" to="." method="_on_tick_speed_value_changed"]

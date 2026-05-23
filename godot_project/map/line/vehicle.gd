@@ -1,60 +1,111 @@
 extends Node2D
+
 @onready var area_2d: Area2D = $Area2D
 
 var COLOR
-var path
-var stops
-var speed
-var capacity
-var stop_duration
+var path = []
+var stops = []
+var speed = 50
+var capacity = 10
+var stop_duration = 2
+var line = null
+var direction = -1
 
 var path_position := 0
 var next_position: Vector2
-
 var moving = true
-
 var go_time = -1
+var stopped_at_node = null
+var passengers = []
 
 func _ready() -> void:
 	z_index = 2
-	self.area_2d.hide()
-
+	area_2d.hide()
+	
 	if path.is_empty():
 		queue_free()
 		return
-
+	
 	position = path[0].position
 	path_position = 1
-
+	
 	if path_position >= path.size():
 		queue_free()
 		return
-
+	
 	next_position = path[path_position].position
 
+	# If the vehicle is spawned on a stop (start of the path), make it initially stopped
+	# so waiting passengers at that stop can board immediately.
+	if path.size() > 0 and path[0] in stops:
+		stopped_at_node = path[0]
+		go_time = (Globals.TICK + stop_duration) % 1440
+		moving = false
+		area_2d.show()
 
 func _process(delta: float) -> void:
-	if self.moving : 
-		var step = speed * delta * Globals.TICKSPEED
+	if moving:
+		_move_vehicle(delta)
+	else:
+		_wait_at_stop()
 
-		position = position.move_toward(next_position, step)
+func _move_vehicle(delta: float) -> void:
+	var step = speed * delta * Globals.TICKSPEED
+	position = position.move_toward(next_position, step)
+	_update_passenger_positions()
+	
+	if position != next_position:
+		return
+	
+	var arrived_node = path[path_position]
+	path_position += 1
+	
+	if path_position >= path.size():
+		_release_all_passengers()
+		queue_free()
+		return
+	
+	next_position = path[path_position].position
+	
+	if arrived_node in stops:
+		stopped_at_node = arrived_node
+		go_time = (Globals.TICK + stop_duration) % 1440
+		moving = false
+		area_2d.show()
 
-		if position == next_position:
-			path_position += 1
+func _wait_at_stop() -> void:
+	_update_passenger_positions()
+	if Globals.TICK == go_time:
+		moving = true
+		stopped_at_node = null
+		area_2d.hide()
 
-			if path_position >= path.size():
-				queue_free()
-				return
+func has_free_seat() -> bool:
+	return passengers.size() < capacity
 
-			next_position = path[path_position].position
-			
-			for stop in self.stops :
-				if stop.position == self.position :
-					self.go_time = (Globals.TICK + self.stop_duration) % 1440
-					self.moving = false
-					self.area_2d.show()
-					break
-	else :
-		if Globals.TICK == self.go_time :
-			self.moving = true
-			self.area_2d.hide()
+func is_stopped_at(stop_node) -> bool:
+	return not moving and stopped_at_node == stop_node
+
+func board(passenger) -> bool:
+	if not has_free_seat():
+		return false
+	if passenger in passengers:
+		return true
+	passengers.append(passenger)
+	passenger.current_vehicle = self
+	return true
+
+func unboard(passenger) -> void:
+	if passenger in passengers:
+		passengers.erase(passenger)
+	passenger.current_vehicle = null
+	passenger.show()
+	passenger.global_position = global_position
+
+func _update_passenger_positions() -> void:
+	for passenger in passengers:
+		passenger.global_position = global_position
+
+func _release_all_passengers() -> void:
+	for passenger in passengers.duplicate():
+		unboard(passenger)
