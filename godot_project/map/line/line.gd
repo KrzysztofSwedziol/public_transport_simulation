@@ -27,12 +27,10 @@ var schedule = {}
 var rng := RandomNumberGenerator.new()
 var default_speed = 50
 var night_line = false
+var is_imported = false
 
 func _ready() -> void:
 	rng.randomize()
-	if rng.randf() < TRAM_PROBABILITY:
-		TRAM_LINE = true
-	create_schedule()
 
 func tick(delta: float) -> void:
 	var directions = schedule.get(Globals.TICK, [])
@@ -127,11 +125,71 @@ func bfs(start_node, end_node, no_go_zone = []) -> Dictionary:
 func initialize(start_node, through_node, end_node) -> void:
 	NUMBER = Globals.get_line_number()
 	COLOR = Globals.get_line_color(NUMBER)
+	if rng.randf() < TRAM_PROBABILITY:
+		TRAM_LINE = true
+	create_schedule()
 	start = start_node
 	end = end_node
 	path = _create_line_path(start_node, through_node, end_node)
 	_create_stops(start_node, through_node, end_node)
 	_register_line_on_roads()
+	# Populate per-node schedules for this line
+	_populate_stop_schedules()
+
+
+func initialize_from_data(map_nodes: Array, line_data: Dictionary) -> void:
+	is_imported = true
+	NUMBER = int(line_data.get("number", 0))
+	COLOR = Color(line_data.get("color", "#000000"))
+	TRAM_LINE = bool(line_data.get("tram_line", false))
+	night_line = bool(line_data.get("night_line", false))
+	default_speed = float(line_data.get("default_speed", 50.0))
+	schedule = {}
+
+	var schedule_data = line_data.get("schedule", {})
+	for key in schedule_data.keys():
+		schedule[int(key)] = schedule_data[key]
+
+	path.clear()
+	for index in line_data.get("path", []):
+		var idx = int(index)
+		if idx >= 0 and idx < map_nodes.size():
+			path.append(map_nodes[idx])
+
+	stops.clear()
+	for index in line_data.get("stops", []):
+		var idx = int(index)
+		if idx >= 0 and idx < map_nodes.size():
+			var stop_node = map_nodes[idx]
+			if stop_node not in stops:
+				stops.append(stop_node)
+			if self not in stop_node.stops:
+				stop_node.stops.append(self)
+
+	if path.size() > 0:
+		start = path[0]
+		end = path[path.size() - 1]
+
+	_register_line_on_roads()
+	_populate_stop_schedules()
+
+
+func _populate_stop_schedules() -> void:
+	# For each stop on the line, compute arrival/departure minutes for the whole day
+	for stop in stops:
+		# initialize or replace schedule for this line on the stop
+		var arrivals := []
+		for depart_time in schedule.keys():
+			var dirs = schedule[depart_time]
+			for dir in dirs:
+				var travel_minutes = _travel_minutes_from_spawn_to_stop(dir, stop)
+				if travel_minutes == INF:
+					continue
+				var arrival = int((depart_time + int(ceil(travel_minutes))) % 1440)
+				if arrival not in arrivals:
+					arrivals.append(arrival)
+		arrivals.sort()
+		stop.schedule[NUMBER] = arrivals
 
 func _create_line_path(start_node, through_node, end_node) -> Array:
 	var result = []

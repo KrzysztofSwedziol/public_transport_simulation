@@ -1,7 +1,7 @@
 extends Node
 
 const MIN_TICKSPEED = 1.0/6.0
-const MAX_TICKSPEED = 60
+const MAX_TICKSPEED = 30
 
 # how many minutes pass every second
 var TICKSPEED := 10.0:
