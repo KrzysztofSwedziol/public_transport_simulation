@@ -2,6 +2,10 @@
 *.iml
 .venv/
 
+# pycache T_T
+__pycache__/
+*.py[cod]
+
 # godot gitignore
 
 # Godot 4+ specific ignores
