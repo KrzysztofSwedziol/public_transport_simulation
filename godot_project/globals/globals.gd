@@ -3,10 +3,22 @@ extends Node
 const MIN_TICKSPEED = 1.0/6.0
 const MAX_TICKSPEED = 30
 
+const MIN_PASSENGER_SPAWNRATE = 1.0 / 6.0
+const MAX_PASSENGER_SPAWNRATE = 30
+
+const NIGHTTIME_SPAWN_DECREASE = 4.0
+
 # how many minutes pass every second
 var TICKSPEED := 10.0:
 	set(value) :
 		TICKSPEED = clamp(value, MIN_TICKSPEED, MAX_TICKSPEED)
+
+# On average x passengers spawn in y minutes
+var PASSENGER_SPAWN_RATE := 3.0 / 1.0 :
+	set(value) :
+		if TICK < 420 :
+			value /= NIGHTTIME_SPAWN_DECREASE
+		PASSENGER_SPAWN_RATE = clamp(value, MIN_PASSENGER_SPAWNRATE, MAX_PASSENGER_SPAWNRATE)
 
 const MARGINS = [
 	50,   # left margin
